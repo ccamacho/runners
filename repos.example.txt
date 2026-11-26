@@ -1,0 +1,10 @@
+# Targets that get self-hosted runners on this machine. Copy this file to repos.txt
+# (repos.txt is not committed, so private repo names stay out of this repo) and edit.
+#
+#   owner/repo      one runner registered to that repo
+#   owner/repo:6    six runners for that repo (six jobs in parallel)
+#   myorg           one org-level runner serving the org's repos (token needs admin:org)
+#   myorg:4         four org-level runners
+#
+# Text after # is ignored.
+owner/repo:4
