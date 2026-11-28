@@ -12,7 +12,7 @@ Ubuntu plus the packages your workflows need, listed in this repo.
 | `runners.sh` | The one entry point: `setup`, `status`, `update`, `build`, `up`, `down`, `uninstall` |
 | `Dockerfile` | `ubuntu:26.04` + the files below + Docker engine + the official `actions/runner`, checksum-verified |
 | `packages.txt` | The apt packages baked into the image |
-| `toolcache.txt` | Node/Go versions pre-seeded for `actions/setup-node` / `setup-go`, checksum-verified |
+| `toolcache.txt` | Node/Go versions pre-seeded for `actions/setup-node` / `setup-go`, checksum-verified; the first of each is on `PATH` |
 | `entrypoint.sh` | Starts the job's private Docker daemon, registers an ephemeral runner, runs one job as `runner` |
 | `repos.example.txt` | Example targets. Copy to `repos.txt` (not committed) and edit |
 | `install-gh.sh` | Installs the GitHub CLI to `~/bin` (no sudo) |

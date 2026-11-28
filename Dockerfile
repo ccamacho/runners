@@ -51,6 +51,18 @@ RUN set -eu; \
       rm -f "/tmp/$file"; \
     done
 
+# Node and Go on PATH, as on a hosted runner, so a step that uses them without a
+# setup action still works. The first version of each in toolcache.txt is the
+# default; setup-node / setup-go put the version a job asks for ahead of it.
+RUN set -eu; \
+    for tool in node go; do \
+      version="$(awk -v t="$tool" '$1 == t { print $2; exit }' /tmp/image/toolcache.txt)"; \
+      [ -n "$version" ] || continue; \
+      for bin in "/opt/hostedtoolcache/$tool/$version/x64/bin/"*; do \
+        ln -s "$bin" "/usr/local/bin/$(basename "$bin")"; \
+      done; \
+    done
+
 # The job user: same name and home as GitHub-hosted runners (some base images already
 # have it), with passwordless sudo.
 RUN id runner >/dev/null 2>&1 || useradd -m -s /bin/bash runner; \
