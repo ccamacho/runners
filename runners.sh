@@ -20,6 +20,8 @@
 #   RUNNERS_LABELS      extra runner labels, comma-separated (default: none — every
 #                       runner is labeled self-hosted, Linux, X64 automatically)
 #   RUNNERS_ENGINE      docker or podman (default: docker if installed, else podman)
+#   RUNNERS_CACHE       "off" disables the per-target download cache volume
+#                       (default: on; see "Local download cache" in README.md)
 #   RUNNERS_BASE_IMAGE  base image (default: the Dockerfile's, ubuntu:26.04)
 #   RUNNERS_IMAGE       image tag (default localhost/gh-runner:latest)
 #   RUNNERS_TOKEN_FILE  file holding a GitHub token for registration (default
@@ -126,12 +128,19 @@ start_slot() {
   local kind=$1 target=$2 i=$3 slug=$4 n=$5 cpus=$6 token
   token="$(gh api -X POST "$(api_base "$kind" "$target")/actions/runners/registration-token" --jq .token)" || return 1
   local who=(-e "REPO=$target"); [ "$kind" = org ] && who=(-e "ORG=$target")
+  # One cache volume per target, so repos never share one. It outlives the
+  # containers: --rm removes only anonymous volumes.
+  local cache=()
+  if [ "${RUNNERS_CACHE:-on}" != off ]; then
+    cache=(-v "gh-runner-cache-$slug:/var/cache/gh-runner" -e RUNNER_CACHE_DIR=/var/cache/gh-runner)
+  fi
   # The token reaches the container through the engine's environment, never argv
   # (visible in `ps`).
   TOKEN="$token" "$E" run -d --rm --privileged \
     --name "gh-runner-$slug-$i" --label gh-runner=1 \
     --cpus "$cpus" --memory "$MEMORY" --pids-limit 16384 \
     -v /var/lib/docker \
+    "${cache[@]}" \
     -e TOKEN "${who[@]}" \
     -e RUNNER_NAME="$HOST-$slug-$i-$(date +%s)" \
     -e RUNNER_LABELS="$LABELS" \
@@ -219,7 +228,7 @@ cmd_setup() {
   {
     echo "PATH=$(dirname "$(command -v gh)"):$(dirname "$(command -v "$E")"):/usr/local/bin:/usr/bin:/bin"
     [ -n "${DOCKER_HOST:-}" ] && echo "DOCKER_HOST=$DOCKER_HOST"
-    for v in RUNNERS_CPUS RUNNERS_MEMORY RUNNERS_LABELS RUNNERS_ENGINE RUNNERS_BASE_IMAGE RUNNERS_IMAGE RUNNERS_TOKEN_FILE; do
+    for v in RUNNERS_CPUS RUNNERS_MEMORY RUNNERS_LABELS RUNNERS_ENGINE RUNNERS_CACHE RUNNERS_BASE_IMAGE RUNNERS_IMAGE RUNNERS_TOKEN_FILE; do
       [ -n "${!v:-}" ] && echo "$v=${!v}"
     done
   } > "$CONF_DIR/env"

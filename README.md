@@ -29,8 +29,8 @@ Lingering is enabled so the units start at boot.
 
 ### Isolation and resources
 
-- **One job per container.** No workspace, caches, processes or HOME files carry
-  over between jobs.
+- **One job per container.** No workspace, processes or HOME files carry over
+  between jobs. The one exception is the download cache below.
 - **Private Docker daemon per job.** Jobs can use `docker`, `docker compose` and
   `container:` steps against a daemon that lives and dies with the job. The
   host's container socket and home directory are never mounted, so a job cannot
@@ -83,6 +83,22 @@ Set before `setup` (it records them in `~/.config/gh-runners/env`):
 | `RUNNERS_LABELS` | none (labels `self-hosted`, `Linux`, `X64` are automatic) |
 | `RUNNERS_ENGINE` | `docker` if installed, else `podman` |
 | `RUNNERS_BASE_IMAGE` | `ubuntu:26.04` |
+
+### Local download cache
+
+Every container is new, so without a local cache each job downloads its
+dependencies again, which on a home connection can use up a job's whole time
+limit. Each target therefore gets a volume, `gh-runner-cache-<target>`, mounted at
+`/var/cache/gh-runner` and exported to jobs as `RUNNER_CACHE_DIR`. npm's download
+cache lives there, and a workflow can keep other archives there (key them by a
+lockfile hash, write to a temporary file and rename, and `touch` what you read).
+Files unused for 14 days are deleted.
+
+This weakens isolation: a job can change what later jobs **of the same target**
+read from the cache. Repos never share a volume, but an org-level target is one
+target for all its repos. Set `RUNNERS_CACHE=off` before `setup` to disable it,
+and clear it with `docker volume rm gh-runner-cache-<target>` while the pool is
+stopped.
 
 ### Starting at boot without a login
 

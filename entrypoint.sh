@@ -11,6 +11,8 @@
 #   RUNNER_LABELS  optional extra labels, comma-separated (self-hosted/Linux/X64 are automatic)
 #   RUNNER_CPUSET  optional CPU list to pin the job to, e.g. "3-5" or "3,4,5"
 #   RUNNER_DOCKER  "off" skips the per-job Docker daemon
+#   RUNNER_CACHE_DIR  optional mounted directory that outlives the container. Jobs see
+#                  the same variable; npm keeps its download cache there.
 set -euo pipefail
 
 if [ -n "${ORG:-}" ]; then
@@ -35,6 +37,15 @@ if [ "${RUNNER_DOCKER:-on}" != "off" ]; then
     tail -n 40 /var/log/dockerd.log >&2
     exit 1
   fi
+fi
+
+if [ -n "${RUNNER_CACHE_DIR:-}" ]; then
+  mkdir -p "$RUNNER_CACHE_DIR/npm"
+  # Files unused for two weeks go, so the volume stays bounded. (Users of the cache
+  # touch what they read.)
+  find "$RUNNER_CACHE_DIR" -type f -mtime +14 -delete 2>/dev/null || true
+  chown runner:runner "$RUNNER_CACHE_DIR" "$RUNNER_CACHE_DIR/npm"
+  export npm_config_cache="$RUNNER_CACHE_DIR/npm"
 fi
 
 cd /home/runner/actions-runner
