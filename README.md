@@ -29,6 +29,8 @@ Lingering is enabled so the units start at boot.
 
 ### Isolation and resources
 
+- **A real init.** Containers start with `--init`, so PID 1 is a root-owned
+  process that reaps orphans, not the runner itself.
 - **One job per container.** No workspace, processes or HOME files carry over
   between jobs. The one exception is the download cache below.
 - **Private Docker daemon per job.** Jobs can use `docker`, `docker compose` and

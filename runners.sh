@@ -136,7 +136,10 @@ start_slot() {
   fi
   # The token reaches the container through the engine's environment, never argv
   # (visible in `ps`).
-  TOKEN="$token" "$E" run -d --rm --privileged \
+  # --init: PID 1 is a root-owned init that reaps orphans, as on a hosted runner.
+  # Without it the runner is PID 1: jobs can signal it, and finished processes
+  # can linger as zombies that still look alive.
+  TOKEN="$token" "$E" run -d --rm --privileged --init \
     --name "gh-runner-$slug-$i" --label gh-runner=1 \
     --cpus "$cpus" --memory "$MEMORY" --pids-limit 16384 \
     -v /var/lib/docker \
