@@ -5,7 +5,7 @@
 #                          services (the runner pool and the weekly update timer).
 #                          Idempotent: rerun after editing repos.txt.
 #   runners.sh status      runner containers here + the runners GitHub sees
-#   runners.sh update      pull the base toolset, rebuild with the latest runner release
+#   runners.sh update      pull the base image, rebuild with the latest runner release
 #                          (new containers pick it up; running jobs are not touched)
 #   runners.sh build [V]   build the image with runner version V (default: latest)
 #   runners.sh up          run the pool in the foreground (what the service runs)
@@ -20,7 +20,7 @@
 #   RUNNERS_LABELS      extra runner labels, comma-separated (default: none — every
 #                       runner is labeled self-hosted, Linux, X64 automatically)
 #   RUNNERS_ENGINE      docker or podman (default: docker if installed, else podman)
-#   RUNNERS_BASE_IMAGE  base image (default: the Dockerfile's, the ubuntu-latest replica)
+#   RUNNERS_BASE_IMAGE  base image (default: the Dockerfile's, ubuntu:26.04)
 #   RUNNERS_IMAGE       image tag (default localhost/gh-runner:latest)
 #   RUNNERS_TOKEN_FILE  file holding a GitHub token for registration (default
 #                       ~/.config/gh-runners/token). Optional: without it `gh`'s own
@@ -241,7 +241,7 @@ WantedBy=default.target
 EOF
   cat > "$UNIT_DIR/gh-runner-update.service" <<EOF
 [Unit]
-Description=Update the GitHub runner image (base toolset + latest runner release)
+Description=Update the GitHub runner image (base image + latest runner release)
 
 [Service]
 Type=oneshot

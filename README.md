@@ -2,15 +2,17 @@
 
 Self-hosted GitHub Actions runners on one Linux machine. Each runner is an
 **ephemeral container that runs exactly one job** and is then replaced, so every
-job starts from a clean image, as on GitHub-hosted runners. The image replicates
-the `ubuntu-latest` toolset, so workflows move over unchanged.
+job starts from a clean image, as on GitHub-hosted runners. The image is a pinned
+Ubuntu plus the packages your workflows need, listed in this repo.
 
 ## How it works
 
 | Piece | What it does |
 |---|---|
 | `runners.sh` | The one entry point: `setup`, `status`, `update`, `build`, `up`, `down`, `uninstall` |
-| `Dockerfile` | `catthehacker/ubuntu:full-latest` (ubuntu-latest replica) + Docker engine + the official `actions/runner`, checksum-verified |
+| `Dockerfile` | `ubuntu:26.04` + the files below + Docker engine + the official `actions/runner`, checksum-verified |
+| `packages.txt` | The apt packages baked into the image |
+| `toolcache.txt` | Node/Go versions pre-seeded for `actions/setup-node` / `setup-go`, checksum-verified |
 | `entrypoint.sh` | Starts the job's private Docker daemon, registers an ephemeral runner, runs one job as `runner` |
 | `repos.example.txt` | Example targets. Copy to `repos.txt` (not committed) and edit |
 | `install-gh.sh` | Installs the GitHub CLI to `~/bin` (no sudo) |
@@ -20,7 +22,7 @@ the `ubuntu-latest` toolset, so workflows move over unchanged.
 - `gh-runners.service` keeps one container per runner slot alive. When a
   container finishes its job and exits, a fresh one registers in its place.
 - `gh-runner-update.timer` (Sunday 04:00, catches up after the machine was off)
-  pulls the base toolset and rebuilds with the latest runner release. New
+  pulls the base image and rebuilds with the latest runner release. New
   containers use the new image; running jobs are never interrupted.
 
 Lingering is enabled so the units start at boot.
@@ -50,7 +52,7 @@ bash install-gh.sh
 gh auth login                  # an admin of the target repos (orgs: admin:org scope)
 
 cp repos.example.txt repos.txt # then edit the targets
-bash runners.sh setup          # first run pulls ~19 GB (the toolset image)
+bash runners.sh setup          # builds the image on the first run
 bash runners.sh status
 ```
 
@@ -80,7 +82,7 @@ Set before `setup` (it records them in `~/.config/gh-runners/env`):
 | `RUNNERS_MEMORY` | `6g` per runner |
 | `RUNNERS_LABELS` | none (labels `self-hosted`, `Linux`, `X64` are automatic) |
 | `RUNNERS_ENGINE` | `docker` if installed, else `podman` |
-| `RUNNERS_BASE_IMAGE` | the ubuntu-latest replica |
+| `RUNNERS_BASE_IMAGE` | `ubuntu:26.04` |
 
 ### Starting at boot without a login
 
@@ -137,9 +139,10 @@ bash runners.sh uninstall              # remove the services too
 - **Private repos only.** Never route a public repo's jobs here: pull requests
   from forks would run arbitrary code on this machine. The same applies to
   org-level runners — keep public repos out of their runner group.
-- The base image is a community replica of the GitHub-hosted toolset, not
-  published by GitHub. GitHub's official `ghcr.io/actions/actions-runner` is
-  minimal by comparison; set `RUNNERS_BASE_IMAGE` to an Ubuntu 24.04 image to
-  trade parity for disk space.
+- This is **not** the GitHub-hosted toolset (GitHub does not publish that image as a
+  container). A workflow that assumes a preinstalled tool fails here until the tool
+  is added to `packages.txt` or installed by the job. `ImageOS` is unset. For
+  near-parity instead, set `RUNNERS_BASE_IMAGE` to a replica such as
+  `ghcr.io/catthehacker/ubuntu:full-24.04` (tens of GB).
 - Tested with rootless Docker. Podman is supported through the same commands
   (`run`, `ps`, `build`, `image inspect`) but not exercised on this machine.

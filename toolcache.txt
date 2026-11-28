@@ -1,0 +1,6 @@
+# Toolchains pre-seeded into the runner tool cache, so actions/setup-node and
+# actions/setup-go find them locally instead of downloading them in every
+# (ephemeral) job. One "<node|go> <exact version>" per line; a version a workflow
+# asks for that is not listed here is simply downloaded by the setup action.
+node 26.13.0
+go 1.22.12

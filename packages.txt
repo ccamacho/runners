@@ -1,0 +1,26 @@
+# apt packages baked into the runner image: one or more per line, text after # is
+# ignored. Edit for your projects, then `bash runners.sh update`.
+# (ca-certificates, curl, git and sudo are installed by the Dockerfile itself.)
+
+# Actions plumbing: caches use zstd (without it actions/cache falls back to gzip and
+# keeps a separate entry from GitHub-hosted runners); setup-* unpack tar.xz/zip.
+zstd xz-utils tar gzip unzip zip
+
+# General workflow tools
+wget gnupg jq file less gh openssh-client
+procps psmisc lsof iproute2 netcat-openbsd util-linux   # util-linux: unshare, taskset, setpriv
+binutils                                                # strings
+bsdextrautils                                           # rev, col, column, hexdump
+bc
+
+# Native builds (node-pty is compiled from source on Linux)
+build-essential pkg-config python3 python3-pip python3-venv
+
+# Test-suite runtime dependencies
+ripgrep expect
+
+# Headless X11 clipboard and VTE terminal tests
+xvfb xauth xclip python3-gi gir1.2-gtk-3.0 gir1.2-vte-2.91
+
+# Needed by the per-job Docker daemon
+iptables
